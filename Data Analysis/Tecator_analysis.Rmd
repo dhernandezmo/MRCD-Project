@@ -1,0 +1,30 @@
+---
+title: "Tecator_analysis"
+author: "Anni Velandia"
+date: "9/13/2022"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+These data are recorded on a Tecator Infratec Food and Feed Analyzer 
+working in the wavelength range 850 - 1050 nm by the Near Infrared 
+Transmission (NIT) principle. Each sample contains finely chopped pure 
+meat with different moisture, fat and protein contents.
+  
+  
+```{r cars}
+summary(cars)
+```
+
+## Including Plots
+
+You can also embed plots, for example:
+
+```{r pressure, echo=FALSE}
+plot(pressure)
+```
+
+Note that the `echo = FALSE` parameter was added to the code chunk to prevent printing of the R code that generated the plot.
