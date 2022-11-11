@@ -1,0 +1,361 @@
+---
+title: "SIMULACIONES"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+### Simulaciones
+A continuación se presentan 4 diseños de simulaciónes usados para medir el desempeño en la modificación de los métodos de clasificación LDA y QDA, usando el estimador MRCD.}
+
+## 1 Diseño
+# 1 poblacion
+Se presenta un diseño con el vector de medias ... y matriz de covarianzas ...
+
+```{r}
+#Numero de variables y cantidad de observaciones
+N = c(50, 150, 300)
+p = c(rep(0,3))
+p=c(500,800,1000)
+p
+#Creando los vectores de medias poblacionales
+m11 = matrix(c(2,-2,rep(0,(p[1]-2))),nrow = p[1],  ncol = 1)
+m12 = -m11
+m21 = matrix(c(2,-2,rep(0,(p[2]-2))),nrow = p[2],  ncol = 1)
+m22 = -m21
+m31 = matrix(c(2,-2,rep(0,(p[3]-2))),nrow = p[3],  ncol = 1)
+m32 = -m31
+
+#Creando las matrices de varianzas y covarianzas
+S1 = diag(1 ,nrow = p[1], ncol = p[1])
+S2 = diag(1 ,nrow = p[2], ncol = p[2])
+S3 = diag(1 ,nrow = p[3], ncol = p[3])
+
+```
+
+Luego usamos la funcion mvrnorm para generar 500,800 y 1000 muestras aleatorias de una normal multivariada con vector de medias m y matriz de covarianzas S respectivamente
+
+```{r}
+#install.packages("MVN",dependencies = TRUE )
+library(MVN)
+library(MASS)
+set.seed(123)
+NM11 = 0.5*mvrnorm(N[1],m11, S1) + 0.5*mvrnorm(N[1],m12,S1)
+NM12 = 0.5*mvrnorm(N[2],m21, S2) + 0.5*mvrnorm(N[2],m22,S2)
+NM13 = 0.5*mvrnorm(N[3],m31, S3) + 0.5*mvrnorm(N[3],m32,S3)
+#NM
+```
+
+
+# 2da poblacion
+Se presenta un diseño con el vector de medias ... y matriz de covarianzas ...
+
+```{r}
+#Numero de variables y cantidad de observaciones
+N = c(50, 150, 300)
+p = c(rep(0,3))
+p=c(500,800,1000)
+p
+#Creando los vectores de medias poblacionales
+m11 = matrix(c(2,2,rep(0,(p[1]-2))),nrow = p[1],  ncol = 1)
+m12 = -m11
+m21 = matrix(c(2,2,rep(0,(p[2]-2))),nrow = p[2],  ncol = 1)
+m22 = -m21
+m31 = matrix(c(2,2,rep(0,(p[3]-2))),nrow = p[3],  ncol = 1)
+m32 = -m31
+
+#Creando las matrices de varianzas y covarianzas
+S1 = diag(1 ,nrow = p[1], ncol = p[1])
+S2 = diag(1 ,nrow = p[2], ncol = p[2])
+S3 = diag(1 ,nrow = p[3], ncol = p[3])
+
+```
+
+Luego usamos la funcion mvrnorm para generar 500,800 y 1000 muestras aleatorias de una normal multivariada con vector de medias m y matriz de covarianzas S respectivamente
+
+```{r}
+#install.packages("MVN",dependencies = TRUE )
+library(MVN)
+library(MASS)
+set.seed(123)
+NM21 = 0.5*mvrnorm(N[1],m11, S1) + 0.5*mvrnorm(N[1],m12,S1)
+NM22 = 0.5*mvrnorm(N[2],m21, S2) + 0.5*mvrnorm(N[2],m22,S2)
+NM23 = 0.5*mvrnorm(N[3],m31, S3) + 0.5*mvrnorm(N[3],m32,S3)
+#NM
+```
+
+
+Organicemos los datos en una sola matriz con su respectivo label de la población
+
+```{r}
+#install.packages("reshape")
+require(reshape)
+
+#Se crean los labels de las poblaciones
+#1ra poblacion
+y11 = c(rep(1,N[1]))
+DB11 <- cbind(NM11 , y11)
+y21 <- c(rep(2,N[1]))
+DB21 <- cbind(NM21 , y21)
+
+#2da poblacion
+y12 = c(rep(1,N[2]))
+DB12 <- cbind(NM12 , y12)
+y22 <- c(rep(2,N[2]))
+DB22 <- cbind(NM22 , y22)
+
+#3era poblacion
+y13 = c(rep(1,N[3]))
+DB13 <- cbind(NM13 , y13)
+y23 <- c(rep(2,N[3]))
+DB23 <- cbind(NM23 , y23)
+
+
+DB1 <- rbind(DB11,DB21)
+DB2 <- rbind(DB12,DB22)
+DB3 <- rbind(DB13,DB23)
+
+#convertirlo a data frame
+DB1 <- as.data.frame(DB1)
+DB2 <- as.data.frame(DB2)
+DB3 <- as.data.frame(DB3)
+
+#Cambio el nombre de la variable labels
+names(DB1)[501]="y1"
+names(DB2)[801]="y2"
+names(DB3)[1001]="y3"
+
+```
+
+
+
+
+# ENTRENAMIENTO DE LOS MODELOS
+
+```{r}
+library("rrcov")
+library(rrcovHD) #RSIMCA
+
+mrcdlda1<-Linda(y1~., data=DB1, method="mrcd")
+mrcdlda2<-Linda(y2~., data=DB2, method="mrcd")
+mrcdlda3<-Linda(y3~., data=DB3, method="mrcd")
+
+#RSIMCA method
+rs1 <- RSimca(y1~., data=DB1)
+rs2 <- RSimca(y2~., data=DB2)
+rs3 <- RSimca(y3~., data=DB3)
+```
+
+# Predicciones y comparaciones
+```{r}
+predict(mrcdlda1)
+predict(rs1)
+
+predict(mrcdlda2)
+predict(rs2)
+
+predict(mrcdlda2)
+predict(rs2)
+```
+
+## 3er Diseño
+# 1 poblacion
+Se presenta un diseño con el vector de medias ... y matriz de covarianzas ...
+
+```{r}
+#Numero de variables y cantidad de observaciones
+N = c(45, 135, 270)
+M = c(5, 15, 30)
+p = c(rep(0,3))
+p=c(500,800,1000)
+p
+#Creando los vectores de medias poblacionales
+m11 = matrix(c(2,-2,rep(0,(p[1]-2))),nrow = p[1],  ncol = 1)
+m12 = -m11
+cm11 = matrix(c(7,-7,rep(0,(p[1]-2))),nrow = p[1],  ncol = 1)
+cm12 = -cm11
+
+m21 = matrix(c(2,-2,rep(0,(p[2]-2))),nrow = p[2],  ncol = 1)
+m22 = -m21
+cm21 = matrix(c(7,-7,rep(0,(p[2]-2))),nrow = p[2],  ncol = 1)
+cm22 = -cm21
+
+m31 = matrix(c(2,-2,rep(0,(p[3]-2))),nrow = p[3],  ncol = 1)
+m32 = -m31
+cm31 = matrix(c(7,-7,rep(0,(p[3]-2))),nrow = p[3],  ncol = 1)
+cm32 = -cm31
+
+
+#Creando las matrices de varianzas y covarianzas
+S1 = diag(1 ,nrow = p[1], ncol = p[1])
+S2 = diag(1 ,nrow = p[2], ncol = p[2])
+S3 = diag(1 ,nrow = p[3], ncol = p[3])
+
+```
+
+Luego usamos la funcion mvrnorm para generar 500,800 y 1000 muestras aleatorias de una normal multivariada con vector de medias m y matriz de covarianzas S respectivamente
+
+```{r}
+#install.packages("MVN",dependencies = TRUE )
+library(MVN)
+library(MASS)
+set.seed(123)
+NM11 = 0.5*mvrnorm(N[1],m11, S1) + 0.5*mvrnorm(N[1],m12,S1)
+NM12 = 0.5*mvrnorm(N[2],m21, S2) + 0.5*mvrnorm(N[2],m22,S2)
+NM13 = 0.5*mvrnorm(N[3],m31, S3) + 0.5*mvrnorm(N[3],m32,S3)
+
+#contaminado
+cNM11 = 0.5*mvrnorm(M[1],cm11, S1) + 0.5*mvrnorm(M[1],cm12,S1)
+cNM12 = 0.5*mvrnorm(M[2],cm21, S2) + 0.5*mvrnorm(M[2],cm22,S2)
+cNM13 = 0.5*mvrnorm(M[3],cm31, S3) + 0.5*mvrnorm(M[3],cm32,S3)
+
+```
+
+
+# 2da poblacion
+Se presenta un diseño con el vector de medias ... y matriz de covarianzas ...
+
+Para el 3 diseño, usamos las mismas distribuciones que en el primer diseño pero con 10% de los datos contaminados
+
+```{r}
+#Numero de variables y cantidad de observaciones
+N = c(45, 135, 270)
+M = c(5, 15, 30)
+p=c(500,800,1000)
+
+#Creando los vectores de medias poblacionales
+m11 = matrix(c(2,2,rep(0,(p[1]-2))),nrow = p[1],  ncol = 1)
+m12 = -m11
+cm11 = matrix(c(7,7,rep(0,(p[1]-2))),nrow = p[1],  ncol = 1)
+cm12 = -cm11
+
+m21 = matrix(c(2,2,rep(0,(p[2]-2))),nrow = p[2],  ncol = 1)
+m22 = -m21
+cm21 = matrix(c(7,7,rep(0,(p[2]-2))),nrow = p[2],  ncol = 1)
+cm22 = -cm21
+
+m31 = matrix(c(2,2,rep(0,(p[3]-2))),nrow = p[3],  ncol = 1)
+m32 = -m31
+cm31 = matrix(c(7,7,rep(0,(p[3]-2))),nrow = p[3],  ncol = 1)
+cm32 = -cm31
+
+
+#Creando las matrices de varianzas y covarianzas
+S1 = diag(1 ,nrow = p[1], ncol = p[1])
+S2 = diag(1 ,nrow = p[2], ncol = p[2])
+S3 = diag(1 ,nrow = p[3], ncol = p[3])
+
+```
+
+Luego usamos la funcion mvrnorm para generar 500,800 y 1000 muestras aleatorias de una normal multivariada con vector de medias m y matriz de covarianzas S respectivamente
+
+```{r}
+#install.packages("MVN",dependencies = TRUE )
+library(MVN)
+library(MASS)
+set.seed(123)
+NM21 = 0.5*mvrnorm(N[1],m11, S1) + 0.5*mvrnorm(N[1],m12,S1)
+NM22 = 0.5*mvrnorm(N[2],m21, S2) + 0.5*mvrnorm(N[2],m22,S2)
+NM23 = 0.5*mvrnorm(N[3],m31, S3) + 0.5*mvrnorm(N[3],m32,S3)
+
+#contaminada
+cNM21 = 0.5*mvrnorm(M[1],cm11, S1) + 0.5*mvrnorm(M[1],cm12,S1)
+cNM22 = 0.5*mvrnorm(M[2],cm21, S2) + 0.5*mvrnorm(M[2],cm22,S2)
+cNM23 = 0.5*mvrnorm(M[3],cm31, S3) + 0.5*mvrnorm(M[3],cm32,S3)
+```
+
+
+Organicemos los datos en una sola matriz con su respectivo label de la población
+
+```{r}
+#install.packages("reshape")
+require(reshape)
+
+#Se crean los labels de las poblaciones
+#1ra poblacion
+
+y11 = c(rep(1,N[1]))
+DB11 <- cbind(NM11 , y11)
+cy11 = c(rep(1,M[1]))
+cDB11 <- cbind(cNM11 , cy11)
+
+y21 <- c(rep(2,N[1]))
+DB21 <- cbind(NM21 , y21)
+cy21 <- c(rep(2,M[1]))
+cDB21 <- cbind(cNM21 , cy21)
+
+#2da poblacion
+y12 = c(rep(1,N[2]))
+DB12 <- cbind(NM12 , y12)
+cy12 = c(rep(1,M[2]))
+cDB12 <- cbind(cNM12 , cy12)
+
+y22 <- c(rep(2,N[2]))
+DB22 <- cbind(NM22 , y22)
+cy22 <- c(rep(2,M[2]))
+cDB22 <- cbind(cNM22 , cy22)
+
+#3era poblacion
+y13 = c(rep(1,N[3]))
+DB13 <- cbind(NM13 , y13)
+cy13 = c(rep(1,M[3]))
+cDB13 <- cbind(cNM13 , cy13)
+
+y23 <- c(rep(2,N[3]))
+DB23 <- cbind(NM23 , y23)
+cy23 <- c(rep(2,M[3]))
+cDB23 <- cbind(cNM23 , cy23)
+
+
+DB1 <- rbind(DB11,cDB11,DB21,cDB21)
+DB2 <- rbind(DB12,cDB12,DB22,cDB22)
+DB3 <- rbind(DB13,cDB13,DB23,cDB23)
+
+#convertirlo a data frame
+DB1 <- as.data.frame(DB1)
+DB2 <- as.data.frame(DB2)
+DB3 <- as.data.frame(DB3)
+
+#Cambio el nombre de la variable labels
+names(DB1)[501]="y1"
+names(DB2)[801]="y2"
+names(DB3)[1001]="y3"
+
+```
+
+
+
+
+# ENTRENAMIENTO DE LOS MODELOS
+
+```{r}
+library("rrcov")
+library(rrcovHD) #RSIMCA
+
+mrcdlda1<-Linda(y1~., data=DB1, method="mrcd")
+mrcdlda2<-Linda(y2~., data=DB2, method="mrcd")
+mrcdlda3<-Linda(y3~., data=DB3, method="mrcd")
+
+#RSIMCA method
+rs1 <- RSimca(y1~., data=DB1)
+rs2 <- RSimca(y2~., data=DB2)
+rs3 <- RSimca(y3~., data=DB3)
+```
+```{r}
+View(DB1)
+```
+
+# Predicciones y comparaciones
+```{r}
+predict(mrcdlda1)
+predict(rs1)
+
+predict(mrcdlda2)
+predict(rs2)
+
+predict(mrcdlda2)
+predict(rs2)
+```
+
