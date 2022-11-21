@@ -1,0 +1,162 @@
+---
+title: "Tecator Data Study"
+output:
+  pdf_document: default
+  html_notebook: default
+---
+
+#Tecator data
+
+```{r Librerías}
+library("fda.usc") #Data Tecator
+library("rrcov")   #MRCD (cov.mrcd)
+library("dplyr")   #Manejar datos
+library("rrcovHD") #Outliers
+library(cramp)     #Test Equal Variance
+library(GGally) #GGPARCOOD
+library(ggplot2)
+```
+
+```{r Tecator Data}
+data("tecator")
+names(tecator)
+
+tecator_data<-as.data.frame(tecator$absorp.fdata$data)
+tecator_data$Fat20<-as.character(ifelse(tecator$y$Fat < 20, 0, 1))
+View(Tecator_fat20)
+
+Tecator_fat20<-tecator_data %>% filter(Fat20==0)
+Tecator_fat20<- select(Tecator_fat20, -Fat20 )
+dim(Tecator_fat20)  #138
+
+Tecator_FATT20<-tecator_data %>% filter(Fat20==1)
+Tecator_FATT20<-select(Tecator_FATT20, -Fat20 )
+dim(Tecator_FATT20) #77
+```
+
+```{r Gráficas}
+absorp <- tecator$absorp.fdata
+Fat20 <- ifelse(tecator$y$Fat < 20, 0, 1) * 6 + 6
+plot(tecator$absorp.fdata, col = Fat20,las = 1)
+
+absorp.d1 <- fdata.deriv(absorp, nderiv = 1)
+plot(absorp.d1, col = Fat20)
+```
+
+
+```{r Datos derivados}
+#Derivar datos
+absorp.d1 <- fdata.deriv(absorp, nderiv = 1)
+
+#Seleccionar data
+tecator_data_d1<-as.data.frame(absorp.d1$data)
+
+#Agregar y 
+tecator_data_d1$Fat20 <- as.character(ifelse(tecator$y$Fat < 20, 0, 1))
+
+#Grupo fat<20
+Tecator_fat20_dev1 <- tecator_data_d1 %>% filter(Fat20==0)
+Tecator_fat20_dev1<- select(Tecator_fat20_dev1, -Fat20 )
+dim(Tecator_fat20_dev1)  #138
+
+#Grupo FAT>20
+
+Tecator_FATT20_dev1<-tecator_data %>% filter(Fat20==1)
+Tecator_FATT20_dev1<-select(Tecator_FATT20_dev1, -Fat20 )
+dim(Tecator_FATT20_dev1) #77
+```
+
+
+```{r Identificando outliers}
+# Detecting outliers ------------------------------------------------------
+outliers <- OutlierPCOut(Fat20~.,data=tecator_data_d1)
+
+tecator_data_d1_out<-tecator_data_d1
+tecator_data_d1_out$outlier<-(outliers@flag)
+
+#Outliers y datos limpios
+set.seed(999)
+clean_tecator <- tecator_data_d1_out %>% filter(outlier==1) %>% sample_n(175) %>% select(-outlier)
+tecator_outliers <- tecator_data_d1_out %>% filter(outlier==0) %>% select(-outlier)
+```
+
+```{r Split data}
+#Validation set
+dim_validation<- (215*0.20) #43  (175 datos limpios)
+Validation_tecator <- clean_tecator[1:dim_validation,] 
+
+#Training set
+dim2<-dim_validation+1
+Training_tecator_1 <- clean_tecator[dim2:175,] 
+Training_tecator <- sample_n(rbind(Training_tecator_1,tecator_outliers),172)
+```
+
+
+```{r Test homoscedasticity}
+# test1<-cramp.statistic(Tecator_fat20_dev1,Tecator_FATT20_dev1, m=5)
+# test1 #Rechazó la hipotesis nula
+```
+
+
+#CLASIFICACIÓN
+Realizaremos ambos métodos de clasificación y analizaremos su desempeño
+
+## MRCD
+```{r MRCD Entrenando el modelo}
+#MRCD
+mrcdlda_deriv<-Linda(Fat20~., data=Training_tecator, method="mrcd")
+Fat20LDA_deriv<-predict(mrcdlda_deriv)@classification
+predict(mrcdlda_deriv)
+
+```
+
+```{r MRCD Testing model}
+#Predicción 
+Levels_predict_mrcd <-(predict(mrcdlda_deriv, Validation_tecator[,1:100])@classification) 
+
+#Original Levels
+Levels_original<-as.factor(Validation_tecator[,100+1])
+
+#Confusion Matrix for Test
+ConfusionLDA<-confusionMatrix(Levels_predict_mrcd,Levels_original) 
+
+#MRCD
+Tasa_error_mrcd<- 1-ConfusionLDA$overall["Accuracy"]; Tasa_error_mrcd
+ConfusionLDA_matrix <- (ConfusionLDA$table); ConfusionLDA_matrix
+
+```
+
+
+
+```{r RSIMCA Entrenando el modelo}
+#MRCD
+rsimca_deriv<-RSimca(Fat20~., data=Training_tecator)
+Fat20RSIMCA_deriv<-predict(rsimca_deriv)@classification
+predict(rsimca_deriv)
+
+```
+
+```{r RSIMCA Testing model}
+#Predicción 
+Levels_predict_rsimca <-(predict(rsimca_deriv, Validation_tecator[,1:100])@classification) 
+
+#Original Levels
+Levels_original<-as.factor(Validation_tecator[,100+1])
+
+#Confusion Matrix for Test
+ConfusionRSIMCA<-confusionMatrix(Levels_predict_rsimca,Levels_original) 
+
+#MRCD
+Tasa_error_rsimca<- 1-ConfusionRSIMCA$overall["Accuracy"]; Tasa_error_rsimca
+ConfusionRSIMCA_matrix <- (ConfusionRSIMCA$table); ConfusionRSIMCA_matrix
+
+```
+
+
+
+```{r}
+save(ConfusionLDA, ConfusionRSIMCA, file  = "Tecator_clasification.RData")
+load("Tecator_clasification.RData")
+```
+
+
