@@ -89,8 +89,15 @@ outliers
 
 # Equal Covariance Test ---------------------------------------------------
 #library(devtools)
-test1<-cramp.statistic(Tecator_fat20_deriv,Tecator_FATT20_deriv, m=2)
+test1<-cramp.statistic(Tecator_fat20_deriv,Tecator_FATT20_deriv, m=5)
 test1
+?cramp.statistic
+
+
+library(mvtnorm)
+x = rmvnorm(n = 20, mean = numeric(1000), sigma = diag(runif(1000)))
+y = rmvnorm(n = 20, mean = numeric(1000), sigma = diag(runif(1000)))
+cramp.statistic(x, y, m = 5)
 
 
 r<-c(outliers[1])

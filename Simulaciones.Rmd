@@ -1,0 +1,581 @@
+---
+title: "SIMULACIONES"
+output:
+  pdf_document: default
+  html_document: default
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+#install.packages("MVN",dependencies = TRUE )
+library(MVN)
+library(MASS)
+```
+
+### Simulaciones
+A continuación se presentan 4 diseños de simulaciónes usados para medir el desempeño en la modificación de los métodos de clasificación LDA y QDA, usando el estimador MRCD.}
+
+## 1 Diseño
+# 1 población
+Se presenta un diseño con el vector de medias ... y matriz de covarianzas ...
+
+```{r}
+#Numero de variables y cantidad de observaciones
+N = c(50, 150, 300)
+p = c(rep(0,3))
+p=c(500,800,1000)
+
+#Creando los vectores de medias poblacionales
+mA11 = matrix(c(2,-2,rep(0,(p[1]-2))),nrow = p[1],  ncol = 1)
+mA12 = -mA11
+mA21 = matrix(c(2,-2,rep(0,(p[2]-2))),nrow = p[2],  ncol = 1)
+mA22 = -mA21
+mA31 = matrix(c(2,-2,rep(0,(p[3]-2))),nrow = p[3],  ncol = 1)
+mA32 = -mA31
+
+#Creando las matrices de varianzas y covarianzas
+S1 = diag(1 ,nrow = p[1], ncol = p[1])
+S2 = diag(1 ,nrow = p[2], ncol = p[2])
+S3 = diag(1 ,nrow = p[3], ncol = p[3])
+
+```
+
+Luego usamos la funcion mvrnorm para generar 500,800 y 1000 muestras aleatorias de una normal multivariada con vector de medias m y matriz de covarianzas S respectivamente
+
+```{r}
+set.seed(060)
+NA1 = 0.5*mvrnorm(N[1],mA11, S1) + 0.5*mvrnorm(N[1],mA12,S1)
+NA2 = 0.5*mvrnorm(N[2],mA21, S2) + 0.5*mvrnorm(N[2],mA22,S2)
+NA3 = 0.5*mvrnorm(N[3],mA31, S3) + 0.5*mvrnorm(N[3],mA32,S3)
+#NM
+```
+
+
+# 2da poblacion
+Se presenta un diseño con el vector de medias ... y matriz de covarianzas ...
+
+```{r}
+#Numero de variables y cantidad de observaciones
+N = c(50, 150, 300)
+p = c(rep(0,3))
+p=c(500,800,1000)
+p
+#Creando los vectores de medias poblacionales
+mB11 = matrix(c(2,2,rep(0,(p[1]-2))),nrow = p[1],  ncol = 1)
+mB12 = -mB11
+mB21 = matrix(c(2,2,rep(0,(p[2]-2))),nrow = p[2],  ncol = 1)
+mB22 = -mB21
+mB31 = matrix(c(2,2,rep(0,(p[3]-2))),nrow = p[3],  ncol = 1)
+mB32 = -mB31
+
+#Creando las matrices de varianzas y covarianzas
+C
+S2 = diag(1 ,nrow = p[2], ncol = p[2])
+S3 = diag(1 ,nrow = p[3], ncol = p[3])
+
+```
+
+Luego usamos la funcion mvrnorm para generar 500,800 y 1000 muestras aleatorias de una normal multivariada con vector de medias m y matriz de covarianzas S respectivamente
+
+```{r}
+#install.packages("MVN",dependencies = TRUE )
+library(MVN)
+library(MASS)
+set.seed(080)
+NB1 = 0.5*mvrnorm(N[1],mB11, S1) + 0.5*mvrnorm(N[1],mB12,S1)
+NB2 = 0.5*mvrnorm(N[2],mB21, S2) + 0.5*mvrnorm(N[2],mB22,S2)
+NB3 = 0.5*mvrnorm(N[3],mB31, S3) + 0.5*mvrnorm(N[3],mB32,S3)
+#NM
+```
+
+
+Organicemos los datos en una sola matriz con su respectivo label de la población
+
+```{r}
+#install.packages("reshape")
+require(reshape)
+
+#Se crean los labels de las poblaciones
+#1er tamaño
+yA1 = c(rep(1,N[1]))
+DA1 <- cbind(NA1 , yA1)
+yB1 <- c(rep(2,N[1]))
+DB1 <- cbind(NB1 , yB1)
+
+#2do tamaño
+yA2 = c(rep(1,N[2]))
+DA2 <- cbind(NA2 , yA2)
+yB2 <- c(rep(2,N[2]))
+DB2 <- cbind(NB2 , yB2)
+
+#3er tamaño
+yA3 = c(rep(1,N[3]))
+DA3 <- cbind(NA3 , yA3)
+yB3 <- c(rep(2,N[3]))
+DB3 <- cbind(NB3 , yB3)
+
+
+D1 <- rbind(DA1,DB1)
+D2 <- rbind(DA2,DB2)
+D3 <- rbind(DA3,DB3)
+
+#convertirlo a data frame
+D1 <- as.data.frame(D1)
+D2 <- as.data.frame(D2)
+D3 <- as.data.frame(D3)
+
+#Cambio el nombre de la variable labels
+names(D1)[501]="y1"
+names(D2)[801]="y2"
+names(D3)[1001]="y3"
+
+```
+
+
+
+
+# ENTRENAMIENTO DE LOS MODELOS
+
+```{r} 
+library("rrcov")
+library(rrcovHD) #RSIMCA
+
+mrcdlda1_prueba1<-Linda(y1~., data=D1, method="mrcd")
+mrcdlda2_prueba1<-Linda(y2~., data=D2, method="mrcd")
+mrcdlda3_prueba1<-Linda(y3~., data=D3, method="mrcd")
+
+#RSIMCA method
+rs1_prueba1 <- RSimca(y1~., data=D1)
+rs2_prueba1 <- RSimca(y2~., data=D2)
+rs3_prueba1 <- RSimca(y3~., data=D3)
+```
+
+# Predicciones y comparaciones
+```{r}
+predict(mrcdlda1_prueba1)
+predict(rs1_prueba1)
+# 
+predict(mrcdlda2)
+predict(rs2)
+# 
+predict(mrcdlda2)
+predict(rs2)
+```
+
+## Conjunto de validación y accuracy
+# 1era población de validación
+```{r}
+#Generación de los conjuntos de validación diferenciados por tamaño
+TestA1 = 0.5*mvrnorm(N[1]/5,mA11, S1) + 0.5*mvrnorm(N[1]/5,mA12,S1)
+TestA2 = 0.5*mvrnorm(N[2]/5,mA21, S2) + 0.5*mvrnorm(N[2]/5,mA22,S2)
+TestA3 = 0.5*mvrnorm(N[3]/5,mA31, S3) + 0.5*mvrnorm(N[3]/5,mA32,S3)
+
+#Generación de labels para los diferentes tamaños
+LabelsTA1 = c(rep(1,N[1]/5))
+TestA1 <- cbind(TestA1, LabelsTA1)
+
+LabelsTA2 = c(rep(1,N[2]/5))
+TestA2 <- cbind(TestA2, LabelsTA2)
+
+LabelsTA3 = c(rep(1,N[3]/5))
+TestA3 <- cbind(TestA3, LabelsTA3)
+
+```
+
+# 2da población de validación
+```{r include=FALSE}
+#Generación de los conjuntos de validación diferenciados por tamaño
+TestB1 = 0.5*mvrnorm(N[1]/5,mB11, S1) + 0.5*mvrnorm(N[1]/5,mB12,S1)
+TestB2 = 0.5*mvrnorm(N[2]/5,mB21, S2) + 0.5*mvrnorm(N[2]/5,mB22,S2)
+TestB3 = 0.5*mvrnorm(N[3]/5,mB31, S3) + 0.5*mvrnorm(N[3]/5,mB32,S3)
+
+#Generación de labels para los diferentes tamaños
+LabelsTB1 = c(rep(2,N[1]/5))
+TestB1 <- cbind(TestB1, LabelsTB1)
+
+LabelsTB2 = c(rep(2,N[2]/5))
+TestB2 <- cbind(TestB2, LabelsTB2)
+
+LabelsTB3 = c(rep(2,N[3]/5))
+TestB3 <- cbind(TestB3, LabelsTB3)
+```
+
+#Unión de poblaciones
+```{r}
+DTest1 <- rbind(TestA1,TestB1)
+DTest2 <- rbind(TestA2,TestB2)
+DTest3 <- rbind(TestA3,TestB3)
+str(DTest1[,501])
+```
+
+
+```{r Test validation Design 1 TAMAÑO 1}
+#-------------- TEST PREDICT ----------------------------------
+levelsPredict<-predict(mrcdlda1, DTest1[,1:p[1]])@classification
+
+
+
+# #Original Levels
+ levelsOriginal<-DTest1[,p[1]+1]
+# 
+# 
+# #Confution Matrix
+ Confusion<-as.data.frame(cbind(levelsOriginal,levelsPredict))
+
+ 
+ConfusionMatrix<- matrix(NA,2,2)
+colnames(ConfusionMatrix)<-c("A","B")
+rownames(ConfusionMatrix)<-c("A","B")
+
+
+Apredict<-Confusion[Confusion$levelsOriginal == 1,]
+Bpredict<-Confusion[Confusion$levelsOriginal == 2,]
+
+for (i in 1:2) {
+  ConfusionMatrix[1,i]<-mean(ifelse(Apredict$levelsPredict == i,1,0))
+  ConfusionMatrix[2,i]<-mean(ifelse(Bpredict$levelsPredict == i,1,0))
+}
+
+#Tasa de error
+ErrorRate<-sum(ConfusionMatrix[1,2],ConfusionMatrix[2,1])/2
+
+print(ConfusionMatrix)
+ErrorRate
+```
+
+
+```{r Test validation Design 1 TAMAÑO 2}
+#-------------- TEST PREDICT 2 ----------------------------------
+levelsPredict<-predict(mrcdlda2, DTest2[,1:p[2]])@classification
+
+
+
+# #Original Levels
+ levelsOriginal<-DTest2[,p[2]+1]
+# 
+# 
+# #Confution Matrix
+ Confusion<-as.data.frame(cbind(levelsOriginal,levelsPredict))
+
+ 
+ConfusionMatrix<- matrix(NA,2,2)
+colnames(ConfusionMatrix)<-c("A","B")
+rownames(ConfusionMatrix)<-c("A","B")
+
+
+Apredict<-Confusion[Confusion$levelsOriginal == 1,]
+Bpredict<-Confusion[Confusion$levelsOriginal == 2,]
+
+for (i in 1:2) {
+  ConfusionMatrix[1,i]<-mean(ifelse(Apredict$levelsPredict == i,1,0))
+  ConfusionMatrix[2,i]<-mean(ifelse(Bpredict$levelsPredict == i,1,0))
+}
+
+#Tasa de error
+ErrorRate<-mean(ConfusionMatrix[1,2],ConfusionMatrix[2,1])
+
+print(ConfusionMatrix)
+ErrorRate
+```
+
+
+
+```{r Test validation Design 1 TAMAÑO 3}
+#-------------- TEST PREDICT 3----------------------------------
+levelsPredict<-predict(mrcdlda3, DTest3[,1:p[3]])@classification
+
+
+
+# #Original Levels
+ levelsOriginal<-DTest3[,p[3]+1]
+# 
+# 
+# #Confution Matrix
+ Confusion<-as.data.frame(cbind(levelsOriginal,levelsPredict))
+
+ 
+ConfusionMatrix<- matrix(NA,2,2)
+colnames(ConfusionMatrix)<-c("A","B")
+rownames(ConfusionMatrix)<-c("A","B")
+
+
+Apredict<-Confusion[Confusion$levelsOriginal == 1,]
+Bpredict<-Confusion[Confusion$levelsOriginal == 2,]
+
+for (i in 1:2) {
+  ConfusionMatrix[1,i]<-mean(ifelse(Apredict$levelsPredict == i,1,0))
+  ConfusionMatrix[2,i]<-mean(ifelse(Bpredict$levelsPredict == i,1,0))
+}
+
+#Tasa de error
+ErrorRate<-mean(ConfusionMatrix[1,2],ConfusionMatrix[2,1])
+
+print(ConfusionMatrix)
+ErrorRate
+```
+
+# 3ER DISEÑO
+# 1 población (generación de outliers)
+Se presenta un diseño con el vector de medias ... y matriz de covarianzas ...
+
+```{r}
+#Número de variables y cantidad de observaciones
+N = c(50, 150, 300)
+N_c = N*0.10
+
+#Creando los vectores de medias poblacionales
+mA11_c = matrix(c(7,-7,rep(0,(p[1]-2))),nrow = p[1],  ncol = 1)
+mA12_c = -mA11_c
+mA21_c = matrix(c(7,-7,rep(0,(p[2]-2))),nrow = p[2],  ncol = 1)
+mA22_c = -mA21_c
+mA31_c = matrix(c(7,-7,rep(0,(p[3]-2))),nrow = p[3],  ncol = 1)
+mA32_c = -mA31_c
+
+```
+
+Luego usamos la funcion mvrnorm para generar 500,800 y 1000 muestras aleatorias de una normal multivariada con vector de medias m y matriz de covarianzas S respectivamente
+
+```{r}
+#install.packages("MVN",dependencies = TRUE )
+library(MVN)
+library(MASS)
+set.seed(123)
+NA1_c = 0.5*mvrnorm(N_c[1],mA11_c, S1) + 0.5*mvrnorm(N_c[1],mA12_c,S1)
+NA2_c = 0.5*mvrnorm(N_c[2],mA21_c, S2) + 0.5*mvrnorm(N_c[2],mA22_c,S2)
+NA3_c = 0.5*mvrnorm(N_c[3],mA31_c, S3) + 0.5*mvrnorm(N_c[3],mA32_c,S3)
+
+```
+
+
+# 2da poblacion
+Se presenta un diseño con el vector de medias ... y matriz de covarianzas ...
+
+Para el 3 diseño, usamos las mismas distribuciones que en el primer diseño pero con 10% de los datos contaminados
+
+```{r}
+#Creando los vectores de medias poblacionales
+mB11_c = matrix(c(7,7,rep(0,(p[1]-2))),nrow = p[1],  ncol = 1)
+mB12_c = -mB11_c
+mB21_c = matrix(c(7,7,rep(0,(p[2]-2))),nrow = p[2],  ncol = 1)
+mB22_c = -mB21_c
+mB31_c = matrix(c(7,7,rep(0,(p[3]-2))),nrow = p[3],  ncol = 1)
+mB32_c = -mB31_c
+
+
+
+```
+
+Luego usamos la funcion mvrnorm para generar 500,800 y 1000 muestras aleatorias de una normal multivariada con vector de medias m y matriz de covarianzas S respectivamente
+
+```{r}
+#install.packages("MVN",dependencies = TRUE )
+library(MVN)
+library(MASS)
+set.seed(321)
+NB1_c = 0.5*mvrnorm(N_c[1],mB11_c, S1) + 0.5*mvrnorm(N_c[1],mB12_c,S1)
+NB2_c = 0.5*mvrnorm(N_c[2],mB21_c, S2) + 0.5*mvrnorm(N_c[2],mB22_c,S2)
+NB3_c = 0.5*mvrnorm(N_c[3],mB31_c, S3) + 0.5*mvrnorm(N_c[3],mB32_c,S3)
+
+```
+
+
+Organicemos los datos en una sola matriz con su respectivo label de la población
+
+```{r}
+
+#Asignación de labels 
+require(reshape)
+
+#Se crean los labels de las poblaciones
+#1er tamaño
+yA1_c = c(rep(1,N_c[1]))
+DA1_c <- cbind(NA1_c , yA1_c)
+yB1_c <- c(rep(2,N_c[1]))
+DB1_c <- cbind(NB1_c , yB1_c)
+
+#2do tamaño
+yA2_c = c(rep(1,N_c[2]))
+DA2_c <- cbind(NA2_c , yA2_c)
+yB2_c <- c(rep(2,N_c[2]))
+DB2_c <- cbind(NB2_c , yB2_c)
+
+#3er tamaño
+yA3_c = c(rep(1,N_c[3]))
+DA3_c <- cbind(NA3_c , yA3_c)
+yB3_c <- c(rep(2,N_c[3]))
+DB3_c <- cbind(NB3_c , yB3_c)
+
+
+library(tidyverse)
+
+D1_c <- rbind(DA1_c,DB1_c)
+D2_c <- rbind(DA2_c,DB2_c)
+D3_c <- rbind(DA3_c,DB3_c)
+ 
+#convertirlo a data frame
+D1_c <- as.data.frame(D1_c)
+D2_c <- as.data.frame(D2_c)
+D3_c <- as.data.frame(D3_c)
+
+#Cambio el nombre de la variable labels
+names(D1_c)[501]="y1"
+names(D2_c)[801]="y2"
+names(D3_c)[1001]="y3"
+
+
+```
+
+
+```{r}
+#Unión de training y contaminada
+D1_C <- rbind(sample_n(D1,N[1]*0.90),D1_c)
+D2_C <- rbind(sample_n(D2,N[2]*0.90),D2_c)
+D3_C <- rbind(sample_n(D3,N[3]*0.90),D3_c)
+
+```
+
+
+
+# ENTRENAMIENTO DE LOS MODELOS
+
+```{r}
+#Entrenando modelos
+library("rrcov")
+library(rrcovHD) #RSIMCA
+
+mrcdlda1_c<-Linda(y1~., data=D1_C, method="mrcd")
+# mrcdlda2_c<-Linda(y2~., data=D2_c, method="mrcd")
+# mrcdlda3_c<-Linda(y3~., data=D3_c, method="mrcd")
+
+#RSIMCA method
+rs1_c <- RSimca(y1~., data=D1_C)
+# rs2_c <- RSimca(y2~., data=D2_c)
+# rs3_c <- RSimca(y3~., data=D3_c)
+
+```
+
+# Predicciones y comparaciones
+```{r}
+
+# # Predicciones y comparaciones(OJO PORQUE ESTARÁ APRENDIENDO LOS OUTLIERS, Y ESOS LOS CLASIFICARÁ MAL, POR ESO PROBARLO CON EL TEST)
+
+predict(mrcdlda1_c)
+predict(rs1_c)
+# 
+# predict(mrcdlda2_c)
+# predict(rs2_c)
+# 
+# predict(mrcdlda2_c)
+# predict(rs2_c)
+
+```
+
+
+```{r}
+
+###
+#-------------- TEST PREDICT 1ER TAMAÑO----------------------------------
+levelsPredict1<-predict(mrcdlda1_c, DTest1[,1:p[1]])@classification
+
+
+
+# #Original Levels
+levelsOriginal1<-DTest1[,p[1]+1]
+# 
+# 
+# #Confution Matrix
+Confusion1<-as.data.frame(cbind(levelsOriginal1,levelsPredict1))
+
+
+ConfusionMatrix1<- matrix(NA,2,2)
+colnames(ConfusionMatrix1)<-c("A","B")
+rownames(ConfusionMatrix1)<-c("A","B")
+
+
+Apredict1<-Confusion1[Confusion1$levelsOriginal1 == 1,]
+Bpredict1<-Confusion1[Confusion1$levelsOriginal1 == 2,]
+
+for (i in 1:2) {
+  ConfusionMatrix1[1,i]<-mean(ifelse(Apredict1$levelsPredict1 == i,1,0))
+  ConfusionMatrix1[2,i]<-mean(ifelse(Bpredict1$levelsPredict1 == i,1,0))
+}
+
+#Tasa de error
+ErrorRate1<-sum(ConfusionMatrix1[1,2],ConfusionMatrix1[2,1])/2
+
+print(ConfusionMatrix1)
+ErrorRate1
+
+```
+
+```{r}
+
+
+###
+#-------------- TEST PREDICT 2DO TAMAÑO----------------------------------
+levelsPredict2<-predict(mrcdlda2_c, DTest2[,1:p[2]])@classification
+
+
+# #Original Levels
+levelsOriginal2<-DTest2[,p[1]+1]
+# 
+# 
+# #Confution Matrix
+Confusion2<-as.data.frame(cbind(levelsOriginal2,levelsPredict2))
+
+
+ConfusionMatrix2<- matrix(NA,2,2)
+colnames(ConfusionMatrix2)<-c("A","B")
+rownames(ConfusionMatrix2)<-c("A","B")
+
+
+Apredict2<-Confusion2[Confusion2$levelsOriginal2 == 1,]
+Bpredict2<-Confusion2[Confusion2$levelsOriginal2 == 2,]
+
+for (i in 1:2) {
+  ConfusionMatrix2[1,i]<-mean(ifelse(Apredict2$levelsPredict2 == i,1,0))
+  ConfusionMatrix2[2,i]<-mean(ifelse(Bpredict2$levelsPredict2 == i,1,0))
+}
+
+#Tasa de error
+ErrorRate2<-sum(ConfusionMatrix2[1,2],ConfusionMatrix2[2,1])/2
+
+print(ConfusionMatrix2)
+ErrorRate2
+```
+
+```{r}
+
+###
+#-------------- TEST PREDICT 3ER TAMAÑO----------------------------------
+levelsPredict3<-predict(mrcdlda3_c, DTest3[,1:p[3]])@classification
+
+# #Original Levels
+levelsOriginal3<-DTest3[,p[3]+1]
+# 
+# 
+# #Confution Matrix
+Confusion3<-as.data.frame(cbind(levelsOriginal3,levelsPredict3))
+
+
+ConfusionMatrix3<- matrix(NA,2,2)
+colnames(ConfusionMatrix3)<-c("A","B")
+rownames(ConfusionMatrix3)<-c("A","B")
+
+
+Apredict3<-Confusion3[Confusion3$levelsOriginal3 == 1,]
+Bpredict3<-Confusion3[Confusion3$levelsOriginal3 == 2,]
+
+for (i in 1:2) {
+  ConfusionMatrix3[1,i]<-mean(ifelse(Apredict3$levelsPredict3 == i,1,0))
+  ConfusionMatrix3[2,i]<-mean(ifelse(Bpredict3$levelsPredict3 == i,1,0))
+}
+
+#Tasa de error
+ErrorRate3<-sum(ConfusionMatrix3[1,2],ConfusionMatrix3[2,1])/2
+
+print(ConfusionMatrix3)
+ErrorRate
+
+```
+
