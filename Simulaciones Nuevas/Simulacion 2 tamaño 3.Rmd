@@ -1,0 +1,223 @@
+---
+title: "Simulación 2 tamaño 3"
+author: "Anni Velandia"
+date: "11/11/2022"
+output: pdf_document
+---
+
+```{r Librerías, message=FALSE, warning=FALSE}
+library(MVN)
+library(MASS)
+library(Matrix) #Crea matriz bloque diagonal
+library(dplyr)
+library(caret) #Crear matrix de confusion
+
+```
+
+# Diseños 2 y 4 de simulación
+
+Los siguientes diseños de simulación están creados para comparar los métodos de simulación RSIMCA y QDA como métodos de clasificación robusta para datos de alta dimensionalidad con diferentes matrices en cada población.
+
+
+# Segundo diseño de simulación
+## Definición de los parámetros de las poblaciones
+```{r Parámetros de tamaño}
+N = c(100, 100, 100,100,100)
+p=c(50,100,200,500,1000)
+```
+
+```{r Vector de medias}
+#Población A
+mA_1 = matrix(c(3,3,3, rep(0,(p[1]-3))),nrow = p[1],  ncol = 1)
+mA_2 = matrix(c(3,3,3, rep(0,(p[2]-3))),nrow = p[2],  ncol = 1)
+mA_3 = matrix(c(3,3,3, rep(0,(p[3]-3))),nrow = p[3],  ncol = 1)
+
+#Población B
+mB_1 = matrix(c(rep(0,(p[1]))),nrow = p[1],  ncol = 1)
+mB_2 = matrix(c(rep(0,(p[2]))),nrow = p[2],  ncol = 1)
+mB_3 = matrix(c(rep(0,(p[3]))),nrow = p[3],  ncol = 1)
+```
+
+
+```{r Matrices de varianza y covarianza}
+# BLOQUES
+#Población A
+Bloque_A1<-matrix(1/2,nrow=3,ncol=3);diag(Bloque_A1)<-2
+
+#Población B
+Bloque_B1<-Bloque_A1-diag(1,3)
+
+#Bloque Conjunto A y B
+Bloque_AB_1<-matrix(1/2,nrow=p[1]-3,ncol=p[1]-3);diag(Bloque_AB_1)<-1
+Bloque_AB_2<-matrix(1/2,nrow=p[2]-3,ncol=p[2]-3);diag(Bloque_AB_2)<-1
+Bloque_AB_3<-matrix(1/2,nrow=p[3]-3,ncol=p[3]-3);diag(Bloque_AB_3)<-1
+
+
+#MATRICES (Sigma A y Sigma B)
+#Población A
+sA_1 <- bdiag(Bloque_A1,Bloque_AB_1)
+sA_2 <- bdiag(Bloque_A1,Bloque_AB_2)
+sA_3 <- bdiag(Bloque_A1,Bloque_AB_3)
+
+
+#Población B
+sB_1 <- bdiag(Bloque_B1,Bloque_AB_1)
+sB_2 <- bdiag(Bloque_B1,Bloque_AB_2)
+sB_3 <- bdiag(Bloque_B1,Bloque_AB_3)
+
+```
+
+## Simulación primer tamaño 
+```{r}
+
+BIG_error_mrcd_3=NULL
+BIG_error_rsimca_3=NULL
+BIG_confusion_mrcd_3=NULL 
+BIG_confusion_rsimca_3=NULL 
+
+BIG_error_test_mrcd_3=NULL
+BIG_error_test_rsimca_3=NULL
+BIG_confusion_test_mrcd_3=NULL 
+BIG_confusion_test_rsimca_3=NULL 
+
+S=100
+ncat <- floor (S/100)
+
+for (i in 1:S) {
+# -------- MUESTRAS
+SampleA_3 <- mvrnorm(N[3],mA_3, sA_3) 
+SampleB_3 <- mvrnorm(N[3],mB_3, sB_3)
+
+#Asignación de labels
+LabelsA_3 <- c(rep(1,N[3]))
+SampleA_3 <- cbind(SampleA_3, LabelsA_3)
+
+LabelsB_3 <- c(rep(2,N[3]))
+SampleB_3 <- cbind(SampleB_3, LabelsB_3)
+
+#Data Union
+Training_data_3 <- as.data.frame(rbind(SampleA_3, SampleB_3))
+names(Training_data_3)[(p[3]+1)]<-"y1"
+
+# -------- CLASIFICACION
+#MRCD
+MRCD_Test_3 <- Linda(y1~., data=Training_data_3, method="mrcd")
+Confusion_matrix_mrcd <- predict(MRCD_Test_3)@ct/N[3]
+
+T_error_mrcd <- (Confusion_matrix_mrcd[1,2]+Confusion_matrix_mrcd[2,1])/2
+Confusion_vector_mrcd<- as.vector(Confusion_matrix_mrcd)
+
+#RSIMCA
+RSIMCA_Test_3 <- RSimca(y1~., data=Training_data_3)
+Confusion_matrix_rsimca <- predict(RSIMCA_Test_3)@ct/N[3]
+
+T_error_rsimca <- (Confusion_matrix_rsimca[1,2]+Confusion_matrix_rsimca[2,1])/2
+Confusion_vector_rsimca<- as.vector(Confusion_matrix_rsimca)
+
+# -------- GUARDAR B ITERACIONES
+#MRCD
+BIG_error_mrcd_3<- rbind(BIG_error_mrcd_3, T_error_mrcd)
+BIG_confusion_mrcd_3<-rbind(BIG_confusion_mrcd_3,Confusion_vector_mrcd)
+
+#RSIMCA
+BIG_error_rsimca_3<- rbind(BIG_error_rsimca_3, T_error_rsimca)
+BIG_confusion_rsimca_3<-rbind(BIG_confusion_rsimca_3,Confusion_vector_rsimca)
+
+# --------  CONJUNTO DE VALIDACION 
+#Generación de muestras 
+SampleA_test_3 <- mvrnorm(N[3]/5,mA_3, sA_3) 
+SampleB_test_3 <- mvrnorm(N[3]/5,mB_3, sB_3)
+
+#Asignación de labels
+LabelsA_test_3 <- c(rep(1,N[3]/5))
+SampleA_test_3 <- cbind(SampleA_test_3, LabelsA_test_3)
+
+LabelsB_test_3 <- c(rep(2,N[3]/5))
+SampleB_test_3 <- cbind(SampleB_test_3, LabelsB_test_3)
+
+#Data Union
+Test_data_3 <- as.data.frame(rbind(SampleA_test_3, SampleB_test_3))
+names(Test_data_3)[(p[3]+1)]<-"y1"
+
+# -------- CLASIFICACION TEST DATA
+#Predicción 
+Levels_predict_mrcd_3 <-(predict(MRCD_Test_3, Test_data_3[,1:p[3]])@classification) 
+Levels_predict_rsimca_3 <-(predict(RSIMCA_Test_3, Test_data_3[,1:p[3]])@classification)
+
+#Original Levels
+Levels_original_3<-as.factor(Test_data_3[,p[3]+1])
+
+#Confusion Matrix for Test
+CM_levels_mrcd_3<-confusionMatrix(Levels_predict_mrcd_3,Levels_original_3) 
+CM_levels_rsimca_3<-confusionMatrix(Levels_predict_rsimca_3,Levels_original_3)
+
+#MRCD
+Test_error_mrcd<- 1-CM_levels_mrcd_3$overall["Accuracy"]
+Confusion_vector_test_mrcd_3 <- as.vector(CM_levels_mrcd_3$table/(N[3]/5))
+
+#RSIMCA
+Test_error_rsimca <- 1-CM_levels_rsimca_3$overall["Accuracy"]
+Confusion_vector_test_rsimca_3 <- as.vector(CM_levels_rsimca_3$table/(N[3]/5))
+
+# -------- GUARDAR B ITERACIONES DE TESTING
+#MRCD Test
+BIG_error_test_mrcd_3<- rbind(BIG_error_test_mrcd_3, Test_error_mrcd)
+BIG_confusion_test_mrcd_3<-rbind(BIG_confusion_test_mrcd_3,Confusion_vector_test_mrcd_3)
+
+#RSIMCA Test
+BIG_error_test_rsimca_3<- rbind(BIG_error_test_rsimca_3, Test_error_rsimca)
+BIG_confusion_test_rsimca_3<-rbind(BIG_confusion_test_rsimca_3,Confusion_vector_test_rsimca_3)
+
+# Progreso
+ if (i%%ncat == 0) cat(100*round(i/S, 2), "% completado ... \n", sep = "")
+}
+
+
+
+```
+
+# Resultados
+## Training validation
+```{r}
+Error_rate_mrcd_final_3<-mean(BIG_error_mrcd_3)
+Error_rate_rsimca_final_3<-mean(BIG_error_rsimca_3)
+
+#MATRICES FINALES
+Confusion_matrix_mrcd_BIG_3 <- matrix(apply(BIG_confusion_mrcd_3,2,mean),2,2)
+colnames(Confusion_matrix_mrcd_BIG_3)<-c("A","B")
+rownames(Confusion_matrix_mrcd_BIG_3)<-c("A","B")
+
+Confusion_matrix_rsimca_BIG_3 <- matrix(apply(BIG_confusion_rsimca_3,2,mean),2,2)
+colnames(Confusion_matrix_rsimca_BIG_3)<-c("A","B")
+rownames(Confusion_matrix_rsimca_BIG_3)<-c("A","B")
+```
+
+##Test validation 
+```{r}
+TEST_error_rate_mrcd_final_3<-mean(BIG_error_test_mrcd_3)
+TEST_error_rate_rsimca_final_3<-mean(BIG_error_test_rsimca_3)
+
+#MATRICES FINALES de validación
+TEST_confusion_matrix_mrcd_BIG_3 <- matrix(apply(BIG_confusion_test_mrcd_3,2,mean),2,2)
+colnames(TEST_confusion_matrix_mrcd_BIG_3)<-c("A","B")
+rownames(TEST_confusion_matrix_mrcd_BIG_3)<-c("A","B")
+
+TEST_confusion_matrix_rsimca_BIG_3 <- matrix(apply(BIG_confusion_test_rsimca_3,2,mean),2,2)
+colnames(TEST_confusion_matrix_rsimca_BIG_3)<-c("A","B")
+rownames(TEST_confusion_matrix_rsimca_BIG_3)<-c("A","B")
+```
+
+
+```{r}
+# save(BIG_error_mrcd_3
+# ,BIG_error_rsimca_3
+# ,BIG_confusion_mrcd_3 
+# ,BIG_confusion_rsimca_3 
+# ,BIG_error_test_mrcd_3
+# ,BIG_error_test_rsimca_3
+# ,BIG_confusion_test_mrcd_3 
+# ,BIG_confusion_test_rsimca_3, file  = "Simulation2_resultados_3.RData")
+load("Simulation2_resultados_3.RData")
+```
+
+
